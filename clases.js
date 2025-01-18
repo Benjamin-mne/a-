@@ -5,6 +5,7 @@ export class Cell {
     isStart = false;
     isGoal = false;
     isPath = false;
+    isHover = false;
     isAvailable = true;
     g; 
     h;
@@ -19,24 +20,33 @@ export class Cell {
 export class Grid {
     cells = [];
     start = {
-        i: undefined,
-        j: undefined
+        i: null,
+        j: null
     };
 
     constructor(rows, columns){
-        this.cells = this.createGrid(rows, columns)
-        this.findNeighbours()
+        this.cells = this.createGrid(rows, columns);
+        this.findNeighbours();
     }
 
-    setStart(i, j){
-        if(this.start.i && this.start.j){
+    setStart(i, j, restore = false){
+        if(restore){
             this.cells[this.start.i][this.start.j].isStart = false;
+            return
         }
 
-        this.start.i = i;
-        this.start.j = j;
-        
-        this.cells[this.start.i][this.start.j].isStart = true;
+        const solicitedCell = this.cells[i][j];
+
+        if(solicitedCell.isAvailable){
+            if(this.start.i || this.start.j){
+                this.cells[this.start.i][this.start.j].isStart = false;
+            }
+
+            this.start.i = i;
+            this.start.j = j;
+
+            this.cells[this.start.i][this.start.j].isStart = true;
+        }
     }
 
     getStart(){
@@ -65,24 +75,28 @@ export class Grid {
         return grid;
     }
 
-    findNeighbours(){
-        for(let i = 0; i < this.cells.length; i++){
-            const quantityColumns = this.cells[i].length - 1;
+    findNeighbours() {
+        const rows = this.cells.length;
+        const columns = this.cells[0].length;
     
-            for(let j = 0; j < quantityColumns + 1; j++){
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < columns; j++) {
                 const cell = this.cells[i][j];
     
-                if(cell.j > 0){
-                    cell.neighbour.push(this.cells[i][j - 1])
+                if (j > 0) {
+                    cell.neighbour.push(this.cells[i][j - 1]);
                 }
-                if(cell.j < quantityColumns){
-                    cell.neighbour.push(this.cells[i][j + 1])
+    
+                if (j < columns - 1) {
+                    cell.neighbour.push(this.cells[i][j + 1]);
                 }
-                if(cell.i > 0){
-                    cell.neighbour.push(this.cells[i - 1][j])
+    
+                if (i > 0) {
+                    cell.neighbour.push(this.cells[i - 1][j]);
                 }
-                if(cell.i < quantityColumns){
-                    cell.neighbour.push(this.cells[i + 1][j])
+    
+                if (i < rows - 1) {
+                    cell.neighbour.push(this.cells[i + 1][j]);
                 }
             }
         }
@@ -101,8 +115,9 @@ export class Draw {
     
             for(let j = 0; j < quantityColumns; j++){
                 ctx.fillStyle = 
-                    cells[i][j].isStart ? "rgb(0, 0, 255)" :
-                    (cells[i][j].isGoal | cells[i][j].isPath) ? "rgb(0, 255, 0)": 
+                    (cells[i][j].isStart && cells[i][j].isAvailable) ? "rgb(0, 0, 255)" :
+                    (cells[i][j].isHover && cells[i][j].isAvailable) ? "rgb(255, 255, 0)" :
+                    ((cells[i][j].isGoal | cells[i][j].isPath) && cells[i][j].isAvailable) ? "rgb(0, 255, 0)": 
                     !cells[i][j].isAvailable ? "rgb(0, 0, 0)" : 
                     "rgb(255, 255, 255)";
                 ctx.fillRect(CELL_EDGE * j, CELL_EDGE * i, CELL_EDGE, CELL_EDGE);

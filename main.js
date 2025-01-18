@@ -6,42 +6,107 @@ $canvas.width = 500;
 $canvas.height = 500;
 
 const grid = new Grid(30, 30);
-grid.setStart(1, 1);
-
-Draw.drawGrid($canvas, grid);
-
 const CELL_EDGE = $canvas.width / grid.cells.length;
 
-let goal = undefined;
-let path = [];
+let start = false;
+let goal = null;
+let hoverPath = [];
+let hover = null;
+let prevCell = null;
+let i = null;
+let j = null;
 
-$canvas.addEventListener('mousemove', function(e){
-    if(goal){
-        goal.isGoal = false;
-    }
+let mouseX = null;
+let mouseY = null;
+let isMouseMoving = false;
 
-    if(path.length > 0){
-        for(let i = 0; i < path.length; i++){
-            path[i].isPath = false;
+$canvas.addEventListener('mousemove', function (e) {
+    mouseX = e.offsetX;
+    mouseY = e.offsetY;
+    isMouseMoving = true;
+});
+
+$canvas.addEventListener('click', function () {
+    if (!start) {
+        grid.setStart(i, j);
+        start = true;
+    } else if (start && goal) {
+        if (hoverPath.length > 0) {
+            for (let cell of hoverPath) {
+                cell.isHover = false;
+                cell.isPath = true;
+            }
         }
+
+        start = false;
+        grid.setStart(null, null, true);
+
+        goal = null;
+        hoverPath = [];
+        hover = null;
+        prevCell = null;
+        i = null;
+        j = null;
     }
+});
 
-    const { offsetX: x, offsetY: y } = e;
+function update() {
+    if (isMouseMoving) {
+        const offSetX = mouseX % CELL_EDGE;
+        const offSetY = mouseY % CELL_EDGE;
 
-    const offSetX = x % CELL_EDGE;
-    const offSetY = y % CELL_EDGE;
+        const isAvailableI = Math.floor((mouseY - offSetY) / CELL_EDGE);
+        const isAvailableJ = Math.floor((mouseX - offSetX) / CELL_EDGE);
 
-    const i = (y - offSetY) / CELL_EDGE;
-    const j = (x - offSetX) / CELL_EDGE;
+        const isAvailableCell = grid.cells[isAvailableI][isAvailableJ]
+        if(!isAvailableCell.isAvailable){
+            return
+        }
 
-    goal = grid.cells[i][j];
-    goal.isGoal = true;
+        i = isAvailableI;
+        j = isAvailableJ;
 
-    path = aStarSearch(grid.getStart(), goal)
+        const currentCell = grid.cells[i][j];
 
-    for(let i = 0; i < path.length; i++){
-        path[i].isPath = true;
+        if (!start) {
+            if (hover) hover.isHover = false;
+            hover = currentCell;
+            hover.isHover = true;
+        } else {
+            if (goal) goal.isGoal = false;
+
+            if (currentCell !== prevCell) {
+                if (goal) goal.isGoal = false;
+
+                for (let cell of hoverPath) {
+                    cell.isHover = false;
+                }
+
+                goal = currentCell;
+                goal.isGoal = true;
+
+                hoverPath = aStarSearch(grid.getStart(), goal);
+
+                for (let cell of hoverPath) {
+                    cell.isHover = true;
+                }
+
+                prevCell = currentCell;
+            }
+        }
+
+        isMouseMoving = false;
     }
+}
 
+function render() {
     Draw.drawGrid($canvas, grid);
-})
+}
+
+function gameLoop() {
+    update(); 
+    render(); 
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
