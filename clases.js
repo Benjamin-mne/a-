@@ -35,6 +35,8 @@ export class Grid {
 
         this.start.i = i;
         this.start.j = j;
+        
+        this.cells[this.start.i][this.start.j].isStart = true;
     }
 
     getStart(){
